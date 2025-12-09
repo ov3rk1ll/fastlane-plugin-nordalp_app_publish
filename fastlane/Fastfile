@@ -1,0 +1,3 @@
+lane :test do
+  nordalp_app_publish
+end
