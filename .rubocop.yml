@@ -195,3 +195,5 @@ Bundler/OrderedGems:
 Gemspec/DevelopmentDependencies:
   Enabled: true
   EnforcedStyle: Gemfile
+Lint/RedundantCopDisableDirective:
+  Enabled: false

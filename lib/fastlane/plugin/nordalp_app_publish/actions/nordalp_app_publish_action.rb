@@ -14,36 +14,42 @@ module Fastlane
         changelog = Helper::NordalpAppPublishHelper.read_first_changelog_entry('CHANGELOG.md')
         UI.message("Changelog for #{changelog[:version]} @ #{changelog[:date]}")
 
-        apks = lane_context[SharedValues::GRADLE_ALL_APK_OUTPUT_PATHS]
         jsons = lane_context[SharedValues::GRADLE_ALL_OUTPUT_JSON_OUTPUT_PATHS]
         links = lane_context[:S3_ALL_FILE_URL]
-        if apks.length == jsons.length && apks.length == links.length
+        if jsons.length == links.length
+          # Markdown renderer to convert changelog to HTML
           markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML, autolink: true)
-          UI.message("Sending #{links.length} version(s) to CMS")
+
           jsons.each_with_index do |element, index|
+            # Read app data from json-output file
             json_string = File.read(element)
             data_hash = JSON.parse(json_string)
             application_id = data_hash['applicationId']
             version_code = data_hash['elements'][0]['versionCode']
             version_name = data_hash['elements'][0]['versionName']
-            UI.message("Use #{links[index]} for #{application_id}")
-            result = Helper::NordalpAppPublishHelper.post_app(params[:url], params[:token], {
-                                                                changelog: {
-                                                                  version: changelog[:version],
-                                                                  date: changelog[:date],
-                                                                  text: markdown.render(changelog[:text]).gsub('<h3>', '<h5>').gsub(
-                                                                    '</h3>', '</h5>'
-                                                                  )
-                                                                },
-                                                                application_id: application_id,
-                                                                link: links[index],
-                                                                version_code: version_code,
-                                                                version_name: version_name
-                                                              })
-            UI.message("Result #{result}")
+
+            # Send data to CMS
+            # The CMS will discard any submissions with an application_id that does not yet have a record
+            post_data = {
+              changelog: {
+                version: changelog[:version],
+                date: changelog[:date],
+                # The Changelog expects the 
+                text: markdown
+                        .render(changelog[:text])
+                        .gsub('<h3>', '<h5>')
+                        .gsub('</h3>', '</h5>')
+              },
+              application_id: application_id,
+              link: links[index],
+              version_code: version_code,
+              version_name: version_name
+            }
+            result = Helper::NordalpAppPublishHelper.post_app(params[:url], params[:token], post_data)
+            UI.message("Sent #{application_id} with result #{result}")
           end
         else
-          UI.message('Number of items not equal in 3 arrays!')
+          UI.message('Number of items not equal in json and link arrays!')
         end
       end
       # rubocop:enable Require/MissingRequireStatement
