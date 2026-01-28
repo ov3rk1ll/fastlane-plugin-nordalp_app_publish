@@ -40,7 +40,7 @@ module Fastlane
             # and sets the Content-Type header to application/json
             body: data_hash.to_json,
             headers: {
-              'Authenticate' => token_string,
+              'Authorization' => "Bearer #{token_string}",
               'Content-Type' => 'application/json',
               'Accept' => 'application/json'
             }
